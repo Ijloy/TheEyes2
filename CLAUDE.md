@@ -8,7 +8,7 @@ Responde siempre en español. El juego está cambiando a vista isométrica 2D es
 
 "The Eye" es un prototipo de acción 2D de fantasía oscura en pixel art, hecho en **Unity 6000.5.0f1** con URP 2D (`com.unity.render-pipelines.universal` 17.5) y el nuevo Input System. El código, los comentarios, los nombres de assets, los menús y los textos del juego están en **español**; el código nuevo debe seguir igual (p. ej. `Suelo`, `Muneco`, `Hechicero`, "Alma en agonía", "El Que Observa").
 
-Todo el contenido del juego está en `Assets/Game/` (`Scripts/`, `Scripts/Editor/`, `Art/`, `Animations/`, `Data/`). La única escena es `Assets/Scenes/SampleScene.unity`. No hay asmdefs (todo compila en `Assembly-CSharp` / `Assembly-CSharp-Editor`), no hay tests y no hay repositorio git.
+Todo el contenido del juego está en `Assets/Game/` (`Scripts/`, `Scripts/Editor/`, `Art/`, `Animations/`, `Data/`). La única escena es `Assets/Scenes/SampleScene.unity`. No hay asmdefs (todo compila en `Assembly-CSharp` / `Assembly-CSharp-Editor`), no hay tests. El proyecto es un repositorio git (rama `main`) con `.gitignore` de Unity (fuera `Library/`, `Temp/`, `Logs/`, `UserSettings/` y los `.csproj`/`.slnx` generados) y `.gitattributes` que fija LF en los YAML de Unity.
 
 ## Trabajar con el editor
 
