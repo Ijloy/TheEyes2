@@ -584,6 +584,8 @@ namespace DarkFantasy.EditorTools
             iso.pixelsPerUnit = PixelsPerUnit;
             psr2.sprite = iso.directionSprites[0];
             ApplyPixelLabArt(iso);
+            EquipIsoCombat(iso);
+            CreateIsoDummy(ToWorld(IsoDummyPx));
 
             SetupIsoCamera(player.transform, new Rect(0f, 0f, w, h));
             EnsureGlobalLight();
@@ -626,18 +628,24 @@ namespace DarkFantasy.EditorTools
             EditorSceneManager.SaveScene(iso.gameObject.scene);
         }
 
-        /// <summary>Asigna al caballero las imágenes de reposo y los cuadros de caminar de PixelLab, si existen.</summary>
+        /// <summary>Asigna al caballero las imágenes de reposo y los cuadros de caminar y atacar de PixelLab, si existen.</summary>
         static bool ApplyPixelLabArt(DarkFantasy.IsoPlayerController iso)
         {
             if (!AssetDatabase.IsValidFolder(IsoPixelLabRoot)) return false;
+            string attackRoot = IsoPixelLabRoot + "/Atacar/";
             foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { IsoPixelLabRoot }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                ConfigureTexture(path, PixelsPerUnit, LowestOpaquePivot(path, PixelLabFeetPivot));
+                // Atacar: pivote fijo a 18 px. El pie que da el paso queda más bajo que en reposo (12-16 px);
+                // con el pivote "fila más baja" el cuerpo daría un salto hacia arriba al empezar el golpe.
+                var pivot = path.StartsWith(attackRoot, StringComparison.Ordinal)
+                    ? PixelLabFeetPivot
+                    : LowestOpaquePivot(path, PixelLabFeetPivot);
+                ConfigureTexture(path, PixelsPerUnit, pivot);
             }
 
             var names = DarkFantasy.IsoPlayerController.DirectionNames;
-            int idleCount = 0, walkCount = 0;
+            int idleCount = 0;
 
             // Reposo: si hay imágenes de PixelLab, sustituyen a las anteriores para que todo cuadre
             var idle = names.Select(d => AssetDatabase.LoadAssetAtPath<Sprite>($"{IsoPixelLabRoot}/Reposo/{d}.png")).ToArray();
@@ -647,21 +655,8 @@ namespace DarkFantasy.EditorTools
                 idleCount = idle.Count(x => x != null);
             }
 
-            var walk = new DarkFantasy.IsoPlayerController.DirectionFrames[names.Length];
-            for (int i = 0; i < names.Length; i++)
-            {
-                walk[i] = new DarkFantasy.IsoPlayerController.DirectionFrames();
-                string folder = $"{IsoPixelLabRoot}/Caminar/{names[i]}";
-                if (!AssetDatabase.IsValidFolder(folder)) continue;
-                walk[i].frames = AssetDatabase.FindAssets("t:Sprite", new[] { folder })
-                    .Select(g => AssetDatabase.GUIDToAssetPath(g))
-                    .OrderBy(x => x, StringComparer.Ordinal)
-                    .Select(x => AssetDatabase.LoadAssetAtPath<Sprite>(x))
-                    .Where(x => x != null)
-                    .ToArray();
-                if (walk[i].frames.Length > 0) walkCount++;
-            }
-            iso.walkFrames = walk;
+            iso.walkFrames = LoadDirectionFrames("Caminar", out int walkCount);
+            iso.attackFrames = LoadDirectionFrames("Atacar", out int attackCount);
 
             if (iso.visual != null && iso.directionSprites.Length > 0 && iso.directionSprites[0] != null)
             {
@@ -669,8 +664,115 @@ namespace DarkFantasy.EditorTools
                 iso.visual.transform.localScale = Vector3.one;
                 iso.visual.transform.localPosition = Vector3.zero;
             }
-            Debug.Log($"[Caballero Maldito] Arte de PixelLab cargado: {idleCount} imágenes de reposo y caminar en {walkCount} direcciones (el resto en espejo).");
-            return idleCount > 0 || walkCount > 0;
+            Debug.Log($"[Caballero Maldito] Arte de PixelLab cargado: {idleCount} imágenes de reposo, caminar en {walkCount} direcciones " +
+                      $"y atacar en {attackCount} (el resto en espejo; sin ataque se usa la imagen de reposo).");
+            return idleCount > 0 || walkCount > 0 || attackCount > 0;
+        }
+
+        /// <summary>Cuadros de PixelLab/&lt;animación&gt;/&lt;dirección&gt;/frame_*.png para las 8 direcciones (vacías si no hay carpeta).</summary>
+        static DarkFantasy.IsoPlayerController.DirectionFrames[] LoadDirectionFrames(string animation, out int directionsFound)
+        {
+            var names = DarkFantasy.IsoPlayerController.DirectionNames;
+            var result = new DarkFantasy.IsoPlayerController.DirectionFrames[names.Length];
+            directionsFound = 0;
+            for (int i = 0; i < names.Length; i++)
+            {
+                result[i] = new DarkFantasy.IsoPlayerController.DirectionFrames();
+                string folder = $"{IsoPixelLabRoot}/{animation}/{names[i]}";
+                if (!AssetDatabase.IsValidFolder(folder)) continue;
+                result[i].frames = AssetDatabase.FindAssets("t:Sprite", new[] { folder })
+                    .Select(AssetDatabase.GUIDToAssetPath)
+                    .OrderBy(x => x, StringComparer.Ordinal)
+                    .Select(AssetDatabase.LoadAssetAtPath<Sprite>)
+                    .Where(x => x != null)
+                    .ToArray();
+                if (result[i].frames.Length > 0) directionsFound++;
+            }
+            return result;
+        }
+
+        // ------------------------------------------------------------------
+        // Combate isométrico: combo de 4 tajos y muñeco de entrenamiento
+        // Estructura: Efectos/Tajos/<n>_<nombre>/frame_000.png... (uno por golpe, en orden, mirando al este)
+
+        const string IsoSlashRoot = "Assets/Game/Art/Efectos/Tajos";
+        const string IsoDummyPath = IsoRoot + "/Muneco/muneco_entrenamiento.png";
+        static readonly Vector2 IsoDummyPx = new Vector2(880, 455);
+
+        [MenuItem("Tools/Caballero Maldito/10. Añadir combate isométrico")]
+        public static void AddIsoCombatMenu()
+        {
+            var iso = UnityEngine.Object.FindAnyObjectByType<DarkFantasy.IsoPlayerController>();
+            if (iso == null)
+            {
+                EditorUtility.DisplayDialog("Caballero Maldito",
+                    "Abre la escena PlazaIsometrica (o ejecuta el paso 8) antes de añadir el combate.", "OK");
+                return;
+            }
+            EquipIsoCombat(iso);
+            var plaza = AssetDatabase.LoadAssetAtPath<Sprite>(IsoPlazaPath);
+            CreateIsoDummy(new Vector2(IsoDummyPx.x, plaza.rect.height - IsoDummyPx.y) / PixelsPerUnit);
+            EditorUtility.SetDirty(iso);
+            EditorSceneManager.MarkSceneDirty(iso.gameObject.scene);
+            EditorSceneManager.SaveScene(iso.gameObject.scene);
+        }
+
+        /// <summary>Crea el hijo "Tajo" del caballero y le asigna los cuadros de cada golpe del combo.</summary>
+        static void EquipIsoCombat(DarkFantasy.IsoPlayerController iso)
+        {
+            DestroyChild(iso.transform, "Tajo");
+            var tajo = new GameObject("Tajo");
+            tajo.transform.SetParent(iso.transform, false);
+            var sr = tajo.AddComponent<SpriteRenderer>();
+            sr.sortingOrder = 1;
+            sr.enabled = false;
+            iso.slashRenderer = sr;
+
+            if (!AssetDatabase.IsValidFolder(IsoSlashRoot))
+            {
+                Debug.LogWarning("[Caballero Maldito] No encuentro los tajos en " + IsoSlashRoot);
+                return;
+            }
+            ConfigureTextures(IsoSlashRoot, PixelsPerUnit, new Vector2(0.5f, 0.5f));
+
+            // Una carpeta por golpe, ordenadas por nombre (1_..., 2_..., 3_..., 4_...)
+            var folders = AssetDatabase.GetSubFolders(IsoSlashRoot).OrderBy(f => f, StringComparer.Ordinal).ToArray();
+            if (iso.combo == null || iso.combo.Length == 0) return;
+            for (int i = 0; i < iso.combo.Length && i < folders.Length; i++)
+            {
+                iso.combo[i].slashFrames = AssetDatabase.FindAssets("t:Sprite", new[] { folders[i] })
+                    .Select(AssetDatabase.GUIDToAssetPath)
+                    .OrderBy(p => p, StringComparer.Ordinal)
+                    .Select(AssetDatabase.LoadAssetAtPath<Sprite>)
+                    .Where(s => s != null)
+                    .ToArray();
+            }
+            Debug.Log($"[Caballero Maldito] Combo isométrico: {Mathf.Min(iso.combo.Length, folders.Length)} tajos cargados de {IsoSlashRoot}.");
+        }
+
+        /// <summary>Muñeco de entrenamiento de la plaza: sólido, ordenado por Y y con la barra de vida encima.</summary>
+        static void CreateIsoDummy(Vector2 worldPos)
+        {
+            DestroyIfExists("Muneco");
+            if (AssetImporter.GetAtPath(IsoDummyPath) == null)
+            {
+                Debug.LogWarning("[Caballero Maldito] No encuentro el sprite del muñeco en " + IsoDummyPath);
+                return;
+            }
+            ConfigureTexture(IsoDummyPath, PixelsPerUnit, LowestOpaquePivot(IsoDummyPath, new Vector2(0.5f, 0f)));
+
+            var dummy = new GameObject("Muneco");
+            dummy.transform.position = worldPos;
+            var sr = dummy.AddComponent<SpriteRenderer>();
+            sr.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(IsoDummyPath);
+            sr.spriteSortPoint = SpriteSortPoint.Pivot;
+            // Collider en la base (sólido: el caballero choca con él y los golpes lo encuentran)
+            var col = dummy.AddComponent<CircleCollider2D>();
+            col.radius = 0.3f;
+            col.offset = new Vector2(0f, 0.2f);
+            var td = dummy.AddComponent<DarkFantasy.TrainingDummy>();
+            td.uiHeight = 1.75f;
+            td.flashColor = new Color(1f, 0.55f, 0.55f);
         }
 
         static void SetupIsoCamera(Transform target, Rect bounds)

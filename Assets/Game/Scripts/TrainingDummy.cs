@@ -12,6 +12,10 @@ namespace DarkFantasy
     {
         public float maxHealth = 120f;
         public float respawnDelay = 3f;
+        [Tooltip("Altura de la barra de vida sobre la posición del muñeco (unidades)")]
+        public float uiHeight = 1.4f;
+        [Tooltip("Color del destello al recibir un golpe (blanco no se nota en sprites que ya son blancos de base)")]
+        public Color flashColor = Color.white;
 
         class Popup { public string text; public Vector3 pos; public float t; public bool heavy; }
 
@@ -47,7 +51,7 @@ namespace DarkFantasy
             popups.Add(new Popup
             {
                 text = Mathf.RoundToInt(amount).ToString(),
-                pos = transform.position + new Vector3(Random.Range(-0.3f, 0.3f), 1.2f, 0f),
+                pos = transform.position + new Vector3(Random.Range(-0.3f, 0.3f), uiHeight - 0.2f, 0f),
                 heavy = heavy
             });
 
@@ -84,7 +88,7 @@ namespace DarkFantasy
             }
 
             if (flashTimer > 0f) flashTimer -= dt;
-            sr.color = flashTimer > 0f ? Color.white : baseColor;
+            sr.color = flashTimer > 0f ? flashColor : baseColor;
 
             if (shakeTimer > 0f)
             {
@@ -118,7 +122,7 @@ namespace DarkFantasy
 
         void DrawHealthBar(Camera cam)
         {
-            Vector3 top = cam.WorldToScreenPoint(basePos + Vector3.up * 1.4f);
+            Vector3 top = cam.WorldToScreenPoint(basePos + Vector3.up * uiHeight);
             float w = 80f;
             float x = top.x - w / 2f;
             float y = Screen.height - top.y;
