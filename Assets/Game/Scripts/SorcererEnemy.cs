@@ -93,7 +93,7 @@ namespace DarkFantasy
             UpdateEffects(dt);
             if (cooldown > 0f) cooldown -= dt;
 
-            // Busca al jugador del prototipo lateral (PlayerController); en la escena isométrica no lo encuentra.
+            // Busca al jugador (PlayerController).
             var player = PlayerController.Instance;
 
             switch (state)

@@ -15,8 +15,6 @@ namespace DarkFantasy
         // Qué objeto es y a qué distancia se puede recoger.
         public ItemDefinition item;
         public float pickupRadius = 0.9f;
-        [Tooltip("Colocado a mano en la escena: empieza ya en el suelo (donde está) y se ordena por Y, como en la vista isométrica")]
-        public bool startOnGround;
 
         // Estado interno: imagen, brillo, velocidad de caída, altura del suelo, si ya cayó o se recogió, y tiempos.
         SpriteRenderer sr;
@@ -63,15 +61,6 @@ namespace DarkFantasy
             glow.sprite = sr.sprite;
             // El brillo es 1.5 veces más grande que el objeto.
             glow.transform.localScale = Vector3.one * 1.5f;
-            if (startOnGround)
-            {
-                // Ya está en el suelo; el SortingGroup lo ordena por Y con el caballero y los recortes
-                groundY = transform.position.y;
-                landed = true;
-                gameObject.AddComponent<UnityEngine.Rendering.SortingGroup>();
-                sr.sortingOrder = 0;
-                glow.sortingOrder = -1;
-            }
             All.Add(this);
         }
 

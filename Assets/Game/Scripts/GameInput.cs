@@ -9,7 +9,7 @@ namespace DarkFantasy
     /// <summary>
     /// Lectura de teclado compatible con el Input System nuevo (por defecto en Unity 6)
     /// y con el Input Manager clásico.
-    /// Controles: A/D o flechas = moverse (W/S también en la vista isométrica), Espacio = saltar, J = atacar,
+    /// Controles: A/D o flechas = moverse, Espacio = saltar, J = atacar,
     /// K = ataque cargado, E = recoger, H = simular que te golpean (para probar la pasiva).
     /// </summary>
     public static class GameInput
@@ -30,25 +30,6 @@ namespace DarkFantasy
 // Versión con el Input Manager clásico.
 #else
                 return Input.GetAxisRaw("Horizontal");
-#endif
-            }
-        }
-
-        // Eje vertical: -1 = abajo (S / flecha abajo), +1 = arriba (W / flecha arriba).
-        /// <summary>W/S o flechas arriba/abajo (para la vista isométrica).</summary>
-        public static float Vertical
-        {
-            get
-            {
-#if ENABLE_INPUT_SYSTEM
-                var k = Keyboard.current;
-                if (k == null) return 0f;
-                float v = 0f;
-                if (k.sKey.isPressed || k.downArrowKey.isPressed) v -= 1f;
-                if (k.wKey.isPressed || k.upArrowKey.isPressed) v += 1f;
-                return v;
-#else
-                return Input.GetAxisRaw("Vertical");
 #endif
             }
         }
