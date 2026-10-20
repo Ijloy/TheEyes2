@@ -950,6 +950,53 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &443486753
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 443486755}
+  - component: {fileID: 443486754}
+  m_Layer: 0
+  m_Name: Botin_EspadaPurpura
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &443486754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 443486753}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a68ca860adbe6942af5ceeaef838de1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DarkFantasy.Pickup
+  item: {fileID: 11400000, guid: ef03331990c6d7e46859f76699195ffd, type: 2}
+  pickupRadius: 0.9
+  startOnGround: 1
+--- !u!4 &443486755
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 443486753}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 23.125, y: 6.71875, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &528615509
 GameObject:
   m_ObjectHideFlags: 0
@@ -2426,6 +2473,20 @@ MonoBehaviour:
   pixelsPerUnit: 32
   combo:
   - label: 1. Diagonal baja
+    bodyFrames:
+    - frames:
+      - {fileID: 21300000, guid: a96cd09716db2ff4a893bf2dea356938, type: 3}
+      - {fileID: 21300000, guid: 4ed874d6242ea8342a675f266ea1693b, type: 3}
+      - {fileID: 21300000, guid: 46d33122bbb887846ab36f218b9d7ad6, type: 3}
+      - {fileID: 21300000, guid: f8ac37277527eb64ab1cc2222e10b31c, type: 3}
+      - {fileID: 21300000, guid: 1b4d853f18b76884789dd5b7e84a6c8e, type: 3}
+    - frames: []
+    - frames: []
+    - frames: []
+    - frames: []
+    - frames: []
+    - frames: []
+    - frames: []
     slashFrames:
     - {fileID: 21300000, guid: 98284f6241353b548be874cbdf9dce0c, type: 3}
     - {fileID: 21300000, guid: fbe746d27e21bbf4599729d4d45d86d7, type: 3}
@@ -2442,6 +2503,7 @@ MonoBehaviour:
     lunge: 2.5
     heavy: 0
   - label: 2. Diagonal sube
+    bodyFrames: []
     slashFrames:
     - {fileID: 21300000, guid: 27e456fec17eb614bbb60ee50a0604b0, type: 3}
     - {fileID: 21300000, guid: 4cebd8427bc8d6247ab4ea52da59a64a, type: 3}
@@ -2458,6 +2520,7 @@ MonoBehaviour:
     lunge: 2.5
     heavy: 0
   - label: 3. Vertical
+    bodyFrames: []
     slashFrames:
     - {fileID: 21300000, guid: bb1db6c88b603234ea19826af5dc3c50, type: 3}
     - {fileID: 21300000, guid: 1b5f291ae21f4294b9882049c797aef0, type: 3}
@@ -2474,6 +2537,7 @@ MonoBehaviour:
     lunge: 3
     heavy: 0
   - label: 4. Horizontal fuerte
+    bodyFrames: []
     slashFrames:
     - {fileID: 21300000, guid: bb643f5fe830d9a4191ecf4d40c1fb32, type: 3}
     - {fileID: 21300000, guid: d34c7f66375645b41ac6c766b3610577, type: 3}
@@ -2779,3 +2843,4 @@ SceneRoots:
   - {fileID: 9118644}
   - {fileID: 1195796935}
   - {fileID: 1216747584}
+  - {fileID: 443486755}

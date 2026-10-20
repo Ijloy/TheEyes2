@@ -10,6 +10,7 @@ namespace DarkFantasy
     /// </summary>
     public class WeaponVisual : MonoBehaviour
     {
+        // Datos de un golpe: nombre, ángulo inicial y final, posición de la mano, duración del barrido y tamaño de la estela.
         [System.Serializable]
         public class Swing
         {
@@ -26,18 +27,21 @@ namespace DarkFantasy
             public float slashSquash = 1f;
         }
 
+        // Referencias: el jugador (prototipo lateral), el dibujo del arma y el dibujo de la estela.
         public PlayerController player;
         public SpriteRenderer weaponRenderer;
         public SpriteRenderer slashRenderer;
 
         [Tooltip("Posición de la mano respecto a los pies (x = hacia delante, y = arriba), en unidades")]
         public Vector2 handOffset = new Vector2(0.2f, 0.75f);
+        // Tiempo que tarda el arma en desaparecer y que dura la estela.
         public float fadeOutTime = 0.12f;
         public float slashTime = 0.14f;
         [Tooltip("Escala base de la estela para que llegue a la punta de la espada")]
         public float slashRadius = 1.7f;
 
         // 1-4 = combo, 5 = ataque cargado
+        // Un golpe por paso del combo (se pueden ajustar desde el Inspector).
         public Swing[] swings =
         {
             new Swing { label = "Golpe 1: tajo horizontal", startAngle = 150f, endAngle = -20f,
@@ -52,6 +56,7 @@ namespace DarkFantasy
                 startOffset = new Vector2(-0.35f, 0.2f), endOffset = new Vector2(0.4f, 0.05f), sweepTime = 0.09f, slashScale = 1.7f },
         };
 
+        // Estado interno: arma equipada, golpe actual, tiempos y si está atacando.
         WeaponDefinition weapon;
         Swing current;
         float timer;
@@ -61,6 +66,7 @@ namespace DarkFantasy
         float slashTimer;
         bool active;
 
+        // Al crearse: busca al jugador y, si la estela no tiene imagen, la genera por código.
         void Awake()
         {
             if (player == null) player = GetComponentInParent<PlayerController>();
@@ -68,6 +74,7 @@ namespace DarkFantasy
                 slashRenderer.sprite = CreateSlashSprite();
         }
 
+        // Se suscribe a los avisos del jugador (empieza / termina un ataque).
         void OnEnable()
         {
             if (player == null) return;
@@ -75,6 +82,7 @@ namespace DarkFantasy
             player.AttackEnded += OnAttackEnded;
         }
 
+        // Se desuscribe al desactivarse (evita errores).
         void OnDisable()
         {
             if (player == null) return;
@@ -82,11 +90,13 @@ namespace DarkFantasy
             player.AttackEnded -= OnAttackEnded;
         }
 
+        // Al empezar el juego equipa el arma que tenga el jugador.
         void Start()
         {
             ApplyWeapon(player != null ? player.weapon : null);
         }
 
+        // Equipa un arma: cambia el dibujo y decide si se ve sin atacar.
         public void ApplyWeapon(WeaponDefinition def)
         {
             weapon = def;
@@ -98,6 +108,7 @@ namespace DarkFantasy
             if (slashRenderer != null) slashRenderer.enabled = false;
         }
 
+        // El jugador empezó un golpe: elige el arco de ese golpe y guarda sus tiempos.
         void OnAttackStarted(int step, float attackDuration, float attackHitTime)
         {
             if (weapon == null || weaponRenderer == null) return;
@@ -111,18 +122,21 @@ namespace DarkFantasy
             weaponRenderer.enabled = true;
         }
 
+        // El jugador terminó o interrumpió el ataque.
         void OnAttackEnded()
         {
             active = false;
             timer = 0f;
         }
 
+        // Cada frame (después de mover al jugador): coloca el arma y la estela.
         void LateUpdate()
         {
             if (player == null || weaponRenderer == null || weapon == null) return;
             float dt = Time.deltaTime;
             bool right = player.FacingRight;
 
+            // Atacando: mueve el arma por su arco y saca la estela en el impacto.
             if (active)
             {
                 timer += dt;
@@ -132,10 +146,12 @@ namespace DarkFantasy
                 float t = Mathf.InverseLerp(sweepStart, hitTime, timer);
                 t = 1f - (1f - t) * (1f - t); // ease-out
 
+                // Ángulo y posición de la mano en este momento del barrido.
                 float angle = Mathf.Lerp(current.startAngle, current.endAngle, t);
                 Vector2 offset = handOffset + Vector2.Lerp(current.startOffset, current.endOffset, t);
                 Place(angle, offset, right);
 
+                // Justo en el frame del impacto aparece la estela (una sola vez).
                 if (timer >= hitTime && slashTimer <= 0f && timer - dt < hitTime)
                     ShowSlash(right);
 
@@ -149,12 +165,14 @@ namespace DarkFantasy
                 SetAlpha(a);
                 if (a <= 0f) weaponRenderer.enabled = false;
             }
+            // Si el arma se ve siempre, la deja en pose de reposo (apuntando abajo).
             else if (weapon.visibleWhenIdle)
             {
                 Place(-75f, handOffset, right);
                 SetAlpha(1f);
             }
 
+            // Destello morado al materializarse.
             if (materializeTimer > 0f)
             {
                 materializeTimer -= dt;
@@ -164,6 +182,7 @@ namespace DarkFantasy
             UpdateSlash(dt);
         }
 
+        // Coloca y gira el arma según el ángulo, la mano y hacia dónde mira el jugador.
         void Place(float angle, Vector2 offset, bool right)
         {
             float dir = right ? 1f : -1f;
@@ -175,11 +194,13 @@ namespace DarkFantasy
             weaponRenderer.flipX = !right;
         }
 
+        // Cambia la transparencia del arma.
         void SetAlpha(float a)
         {
             weaponRenderer.color = new Color(1f, 1f, 1f, a);
         }
 
+        // Muestra la estela del tajo en la mano, orientada a la mitad del arco.
         void ShowSlash(bool right)
         {
             if (slashRenderer == null) return;
@@ -195,11 +216,13 @@ namespace DarkFantasy
             s.localScale = new Vector3(baseScale, baseScale * current.slashSquash, 1f);
             s.localRotation = Quaternion.Euler(0f, 0f, right ? mid : 180f - mid);
 
+            // Color de la estela según el arma.
             slashRenderer.color = weapon.slashColor;
             slashRenderer.enabled = true;
             slashTimer = slashTime;
         }
 
+        // La estela se desvanece y se agranda un poco hasta desaparecer.
         void UpdateSlash(float dt)
         {
             if (slashRenderer == null || slashTimer <= 0f) return;
@@ -214,11 +237,13 @@ namespace DarkFantasy
         /// <summary>Genera en tiempo de ejecución una media luna pixelada para la estela del tajo.</summary>
         static Sprite CreateSlashSprite()
         {
+            // Textura de 48x48 píxeles.
             const int size = 48;
             var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point };
             var px = new Color[size * size];
             Vector2 c = new Vector2(size * 0.3f, size * 0.5f);
             float outer = size * 0.48f;
+            // Recorre cada píxel y decide si forma parte del arco.
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
@@ -240,6 +265,7 @@ namespace DarkFantasy
                     else px[y * size + x] = Color.clear;
                 }
             }
+            // Aplica los píxeles y crea el sprite con el pivote en el centro del arco.
             tex.SetPixels(px);
             tex.Apply();
             return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.3f, 0.5f), 32f);

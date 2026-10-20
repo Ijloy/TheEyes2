@@ -20,6 +20,7 @@ namespace DarkFantasy.EditorTools
     /// </summary>
     public static class KnightPrototypeSetup
     {
+        // Rutas de carpetas y archivos del proyecto que usa este montaje automático.
         const string ArtRoot = "Assets/Game/Art/CaballeroMaldito";
         const string PlaceholderRoot = "Assets/Game/Art/Placeholder";
         const string AnimRoot = "Assets/Game/Animations/CaballeroMaldito";
@@ -38,10 +39,12 @@ namespace DarkFantasy.EditorTools
         const string ItemDataRoot = "Assets/Game/Data/Objetos";
         const string RuneDataPath = ItemDataRoot + "/RunaOscuraComun.asset";
 
+        // Píxeles por unidad de todo el arte (32 px = 1 unidad de Unity).
         const int PixelsPerUnit = 32;
         // Los cuadros de PixelLab miden 88x88 y los pies están en la fila 76 desde arriba.
         static readonly Vector2 FeetPivot = new Vector2(0.5f, 12f / 88f);
 
+        // Origen de una animación: carpeta y, opcionalmente, qué cuadros usar.
         struct Source
         {
             public string folder;
@@ -53,6 +56,7 @@ namespace DarkFantasy.EditorTools
             }
         }
 
+        // Definición de una animación: nombre, velocidad, si se repite y carpetas posibles.
         class ClipDef
         {
             public string name;
@@ -92,6 +96,7 @@ namespace DarkFantasy.EditorTools
 
         // ------------------------------------------------------------------
         [MenuItem("Tools/Caballero Maldito/1. Crear animaciones")]
+        // MENÚ 1 (prototipo lateral): prepara los PNG del caballero y crea las animaciones y el Animator.
         public static void BuildAnimations()
         {
             if (!AssetDatabase.IsValidFolder(ArtRoot))
@@ -100,12 +105,14 @@ namespace DarkFantasy.EditorTools
                 return;
             }
 
+            // Importa todas las imágenes como pixel art con el pivote en los pies.
             ConfigureTextures(ArtRoot, PixelsPerUnit, FeetPivot);
             EnsureFolder(AnimRoot);
 
             var created = new List<AnimationClip>();
             var report = new List<string>();
 
+            // Para cada animación usa la primera carpeta que exista (la definitiva o la provisional).
             foreach (var def in Clips)
             {
                 List<Sprite> sprites = null;
@@ -127,6 +134,7 @@ namespace DarkFantasy.EditorTools
                 report.Add($"{(placeholder ? "~" : "✓")} {def.name} ← {used} ({sprites.Count} cuadros){(placeholder ? "  [provisional]" : "")}");
             }
 
+            // Crea el Animator con todas las animaciones, guarda y muestra el resumen.
             BuildController(created);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -139,8 +147,10 @@ namespace DarkFantasy.EditorTools
 
         // ------------------------------------------------------------------
         [MenuItem("Tools/Caballero Maldito/2. Montar escena de prueba")]
+        // MENÚ 2 (prototipo lateral): monta la escena de prueba con suelo, caballero, muñeco, hechicero, cámara y fondo.
         public static void BuildTestScene()
         {
+            // Si todavía no existen las animaciones, las crea primero.
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
             if (controller == null)
             {
@@ -155,6 +165,7 @@ namespace DarkFantasy.EditorTools
                 .Select(FirstSprite)
                 .FirstOrDefault();
 
+            // Borra lo que hubiera de un montaje anterior.
             DestroyIfExists("Suelo");
             DestroyIfExists("CaballeroMaldito");
             DestroyIfExists("Muneco");
@@ -201,6 +212,7 @@ namespace DarkFantasy.EditorTools
             dummy.AddComponent<DarkFantasy.TrainingDummy>();
             SetupLoot(dummy);
 
+            // Hechicero, cámara, luz y fondo.
             CreateSorcerer(new Vector3(9f, -0.95f, 0f));
 
             SetupCamera(player.transform);
@@ -216,6 +228,7 @@ namespace DarkFantasy.EditorTools
 
         // ------------------------------------------------------------------
         [MenuItem("Tools/Caballero Maldito/3. Equipar espada")]
+        // MENÚ 3 (prototipo lateral): equipa la espada al caballero que ya está en la escena.
         public static void EquipSwordMenu()
         {
             var player = GameObject.Find("CaballeroMaldito");
@@ -231,8 +244,10 @@ namespace DarkFantasy.EditorTools
             }
         }
 
+        // Crea los hijos 'Arma' y 'Tajo' del caballero y les conecta WeaponVisual.
         static bool SetupWeapon(GameObject player)
         {
+            // Datos del arma (se crean si no existen).
             var def = GetOrCreateSwordData();
             if (def == null) return false;
 
@@ -269,6 +284,7 @@ namespace DarkFantasy.EditorTools
         }
 
         [MenuItem("Tools/Caballero Maldito/4. Añadir botín al muñeco")]
+        // MENÚ 4: añade al muñeco una tabla de botín (suelta una Runa oscura).
         public static void AddLootMenu()
         {
             var dummy = GameObject.Find("Muneco");
@@ -288,6 +304,7 @@ namespace DarkFantasy.EditorTools
             }
         }
 
+        // Configura el LootDropper: suelta siempre 1 Runa oscura.
         static bool SetupLoot(GameObject dummy)
         {
             var rune = GetOrCreateRuneData();
@@ -305,6 +322,7 @@ namespace DarkFantasy.EditorTools
         }
 
         [MenuItem("Tools/Caballero Maldito/5. Añadir hechicero enemigo")]
+        // MENÚ 5 (prototipo lateral): añade un hechicero a la derecha del caballero.
         public static void AddSorcererMenu()
         {
             var player = GameObject.Find("CaballeroMaldito");
@@ -317,6 +335,7 @@ namespace DarkFantasy.EditorTools
             }
         }
 
+        // Crea el hechicero: carga sus animaciones, física, colisión, IA y botín.
         static GameObject CreateSorcerer(Vector3 position)
         {
             if (!AssetDatabase.IsValidFolder(SorcererArtRoot))
@@ -328,6 +347,7 @@ namespace DarkFantasy.EditorTools
             // Cuadros de 70x68 con los pies en la última fila
             ConfigureTextures(SorcererArtRoot, PixelsPerUnit, new Vector2(0.5f, 1f / 68f));
 
+            // Carga los cuadros de cada animación (caminar es obligatoria; las demás usan sustitutos si faltan).
             Sprite[] walk = LoadSpritesIn(SorcererArtRoot + "/Walk");
             if (walk.Length == 0)
             {
@@ -355,6 +375,7 @@ namespace DarkFantasy.EditorTools
             box.size = new Vector2(0.9f, 1.9f);
             box.offset = new Vector2(0f, 0.95f);
 
+            // Sus 4 animaciones para el SpriteFrameAnimator.
             var animator = go.AddComponent<DarkFantasy.SpriteFrameAnimator>();
             animator.clips = new[]
             {
@@ -369,6 +390,7 @@ namespace DarkFantasy.EditorTools
             return go;
         }
 
+        // Carga todos los PNG de una carpeta como sprites, ordenados por nombre.
         static Sprite[] LoadSpritesIn(string folder)
         {
             if (!AssetDatabase.IsValidFolder(folder)) return new Sprite[0];
@@ -381,6 +403,7 @@ namespace DarkFantasy.EditorTools
         }
 
         [MenuItem("Tools/Caballero Maldito/6. Añadir fondo (ciudad gótica)")]
+        // MENÚ 6 (prototipo lateral): añade el fondo de la ciudad gótica con parallax.
         public static void AddBackgroundMenu()
         {
             if (CreateBackground() != null)
@@ -391,6 +414,7 @@ namespace DarkFantasy.EditorTools
             }
         }
 
+        // Crea las 3 capas del fondo (cielo, ciudad lejana y edificios), cada una a su velocidad.
         static GameObject CreateBackground()
         {
             if (!AssetDatabase.IsValidFolder(BackgroundRoot)) return null;
@@ -424,6 +448,7 @@ namespace DarkFantasy.EditorTools
         // ------------------------------------------------------------------
         // Vista isométrica (estilo Diablo 2)
 
+        // Rutas del arte isométrico y de la escena de la plaza.
         const string IsoRoot = "Assets/Game/Art/Isometrico";
         const string IsoKnightRoot = IsoRoot + "/Caballero";
         const string IsoPlazaPath = IsoRoot + "/Escenarios/plaza_gotica_1280.png";
@@ -431,6 +456,7 @@ namespace DarkFantasy.EditorTools
         const string IsoScenePath = "Assets/Scenes/PlazaIsometrica.unity";
         // Cuadros de 57x68 y 68x68 con los pies en la fila 66 desde arriba
         static readonly Vector2 IsoFeetPivot = new Vector2(0.5f, 1f / 68f);
+        // Dónde aparece el caballero, en píxeles de la imagen de la plaza.
         static readonly Vector2 IsoSpawnPx = new Vector2(800, 470);
 
         // Borde de la zona caminable, en píxeles de la imagen de la plaza (origen arriba a la izquierda).
@@ -511,6 +537,7 @@ namespace DarkFantasy.EditorTools
         };
 
         [MenuItem("Tools/Caballero Maldito/8. Montar escena isométrica")]
+        // MENÚ 8 (isométrico): crea desde cero la escena de la plaza con colisiones, recortes, caballero, muñeco y cámara.
         public static void BuildIsoScene()
         {
             if (AssetImporter.GetAtPath(IsoPlazaPath) == null)
@@ -518,8 +545,10 @@ namespace DarkFantasy.EditorTools
                 EditorUtility.DisplayDialog("Caballero Maldito", "No encuentro " + IsoPlazaPath, "OK");
                 return;
             }
+            // Pregunta si guardar la escena actual antes de reemplazarla.
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
+            // Importa el arte y activa el orden de dibujo por altura (Y).
             ConfigureTextures(IsoKnightRoot, PixelsPerUnit, IsoFeetPivot);
             ConfigureTexture(IsoPlazaPath, PixelsPerUnit, Vector2.zero);
             ConfigureYSorting();
@@ -529,6 +558,7 @@ namespace DarkFantasy.EditorTools
             // La plaza tiene el pivote abajo a la izquierda en (0,0): de píxel de la imagen a mundo
             Vector2 ToWorld(Vector2 px) => new Vector2(px.x / PixelsPerUnit, (plazaH - px.y) / PixelsPerUnit);
 
+            // Escena nueva y vacía.
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             // Suelo de fondo
@@ -538,6 +568,7 @@ namespace DarkFantasy.EditorTools
             psr.sortingOrder = -100;
 
             // Colliders invisibles: borde de la zona caminable, obstáculos sueltos y bordes de la imagen
+            // Colisiones invisibles: borde de la zona caminable, obstáculos y bordes de la imagen.
             var walls = new GameObject("Colisiones");
             walls.transform.SetParent(plazaGo.transform, false);
             walls.AddComponent<EdgeCollider2D>().points =
@@ -549,6 +580,7 @@ namespace DarkFantasy.EditorTools
                 { Vector2.zero, new Vector2(w, 0f), new Vector2(w, h), new Vector2(0f, h), Vector2.zero };
 
             // Objetos con orden por Y
+            // Crea cada objeto recortado de la plaza como un sprite aparte (para poder pasar por detrás).
             foreach (var c in IsoCutouts)
             {
                 var sprite = CreateCutout(c.name.ToLowerInvariant(), c.shapes, c.foot);
@@ -573,9 +605,11 @@ namespace DarkFantasy.EditorTools
             rb.freezeRotation = true;
             rb.interpolation = RigidbodyInterpolation2D.Interpolate;
             rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+            // Colisión pequeña en los pies (la vista es isométrica: solo choca la base).
             var feet = player.AddComponent<CircleCollider2D>();
             feet.radius = 0.22f;
             feet.offset = new Vector2(0f, 0.2f);
+            // Controlador isométrico con las imágenes de reposo de las 8 direcciones.
             var iso = player.AddComponent<DarkFantasy.IsoPlayerController>();
             iso.directionSprites = DarkFantasy.IsoPlayerController.DirectionNames
                 .Select(d => AssetDatabase.LoadAssetAtPath<Sprite>($"{IsoKnightRoot}/Direcciones/caballero_{d}.png"))
@@ -583,14 +617,18 @@ namespace DarkFantasy.EditorTools
             iso.visual = psr2;
             iso.pixelsPerUnit = PixelsPerUnit;
             psr2.sprite = iso.directionSprites[0];
+            // Le pone el arte de PixelLab, el combate y crea el muñeco.
             ApplyPixelLabArt(iso);
             EquipIsoCombat(iso);
             CreateIsoDummy(ToWorld(IsoDummyPx));
+            CreateIsoPurpleSword(ToWorld(IsoPurpleSwordPx));
 
+            // Cámara que sigue al caballero sin salirse de la plaza; luz y vista Game a 1920x1080.
             SetupIsoCamera(player.transform, new Rect(0f, 0f, w, h));
             EnsureGlobalLight();
             SetGameViewFullHD();
 
+            // Guarda la escena en Assets/Scenes/PlazaIsometrica.unity.
             EditorSceneManager.SaveScene(scene, IsoScenePath);
             Selection.activeGameObject = player;
             Debug.Log("[Caballero Maldito] Escena isométrica guardada en " + IsoScenePath +
@@ -608,7 +646,12 @@ namespace DarkFantasy.EditorTools
         const string IsoPixelLabRoot = IsoKnightRoot + "/PixelLab";
         static readonly Vector2 PixelLabFeetPivot = new Vector2(0.5f, 18f / 96f); // por si no se puede leer la imagen
 
+        // Para añadir los golpes 2, 3 y 4 hay que agregar aquí sus carpetas ("Atacar2", "Atacar3"...).
+        /// <summary>Carpeta de PixelLab con la animación del cuerpo de cada golpe del combo (1.º, 2.º...).</summary>
+        static readonly string[] IsoComboBodyFolders = { "Atacar" };
+
         [MenuItem("Tools/Caballero Maldito/9. Cargar animaciones isométricas (PixelLab)")]
+        // MENÚ 9 (isométrico): vuelve a cargar el arte de PixelLab en el caballero de la escena abierta y guarda.
         public static void LoadIsoAnimationsMenu()
         {
             var iso = UnityEngine.Object.FindAnyObjectByType<DarkFantasy.IsoPlayerController>();
@@ -633,6 +676,7 @@ namespace DarkFantasy.EditorTools
         {
             if (!AssetDatabase.IsValidFolder(IsoPixelLabRoot)) return false;
             string attackRoot = IsoPixelLabRoot + "/Atacar/";
+            // Importa todas las imágenes de PixelLab como pixel art y elige el pivote de cada una.
             foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { IsoPixelLabRoot }))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
@@ -648,6 +692,7 @@ namespace DarkFantasy.EditorTools
             int idleCount = 0;
 
             // Reposo: si hay imágenes de PixelLab, sustituyen a las anteriores para que todo cuadre
+            // Imágenes de reposo de las 8 direcciones.
             var idle = names.Select(d => AssetDatabase.LoadAssetAtPath<Sprite>($"{IsoPixelLabRoot}/Reposo/{d}.png")).ToArray();
             if (idle.Any(x => x != null))
             {
@@ -655,9 +700,21 @@ namespace DarkFantasy.EditorTools
                 idleCount = idle.Count(x => x != null);
             }
 
+            // Cuadros de caminar y de atacar de cada dirección.
             iso.walkFrames = LoadDirectionFrames("Caminar", out int walkCount);
             iso.attackFrames = LoadDirectionFrames("Atacar", out int attackCount);
 
+            // Animación propia de cada golpe del combo (los que no tienen usan la general)
+            int bodySteps = 0;
+            for (int i = 0; iso.combo != null && i < iso.combo.Length; i++)
+            {
+                iso.combo[i].bodyFrames = i < IsoComboBodyFolders.Length
+                    ? LoadDirectionFrames(IsoComboBodyFolders[i], out _)
+                    : new DarkFantasy.IsoPlayerController.DirectionFrames[0];
+                if (iso.combo[i].bodyFrames.Any(f => f.HasFrames)) bodySteps++;
+            }
+
+            // Muestra la imagen de reposo hacia el sur en el editor.
             if (iso.visual != null && iso.directionSprites.Length > 0 && iso.directionSprites[0] != null)
             {
                 iso.visual.sprite = iso.directionSprites[0];
@@ -665,10 +722,12 @@ namespace DarkFantasy.EditorTools
                 iso.visual.transform.localPosition = Vector3.zero;
             }
             Debug.Log($"[Caballero Maldito] Arte de PixelLab cargado: {idleCount} imágenes de reposo, caminar en {walkCount} direcciones " +
-                      $"y atacar en {attackCount} (el resto en espejo; sin ataque se usa la imagen de reposo).");
+                      $"y atacar en {attackCount} (el resto en espejo; sin ataque se usa la imagen de reposo). " +
+                      $"Golpes del combo con animación propia: {bodySteps}.");
             return idleCount > 0 || walkCount > 0 || attackCount > 0;
         }
 
+        // Recorre las 8 direcciones y carga los cuadros de cada carpeta, ordenados por nombre.
         /// <summary>Cuadros de PixelLab/&lt;animación&gt;/&lt;dirección&gt;/frame_*.png para las 8 direcciones (vacías si no hay carpeta).</summary>
         static DarkFantasy.IsoPlayerController.DirectionFrames[] LoadDirectionFrames(string animation, out int directionsFound)
         {
@@ -700,6 +759,7 @@ namespace DarkFantasy.EditorTools
         static readonly Vector2 IsoDummyPx = new Vector2(880, 455);
 
         [MenuItem("Tools/Caballero Maldito/10. Añadir combate isométrico")]
+        // MENÚ 10 (isométrico): añade el combate (tajos del combo) y el muñeco a la escena abierta, y guarda.
         public static void AddIsoCombatMenu()
         {
             var iso = UnityEngine.Object.FindAnyObjectByType<DarkFantasy.IsoPlayerController>();
@@ -720,6 +780,7 @@ namespace DarkFantasy.EditorTools
         /// <summary>Crea el hijo "Tajo" del caballero y le asigna los cuadros de cada golpe del combo.</summary>
         static void EquipIsoCombat(DarkFantasy.IsoPlayerController iso)
         {
+            // Crea el hijo 'Tajo' del caballero (oculto hasta que ataca).
             DestroyChild(iso.transform, "Tajo");
             var tajo = new GameObject("Tajo");
             tajo.transform.SetParent(iso.transform, false);
@@ -733,6 +794,7 @@ namespace DarkFantasy.EditorTools
                 Debug.LogWarning("[Caballero Maldito] No encuentro los tajos en " + IsoSlashRoot);
                 return;
             }
+            // Importa los tajos con el pivote en el centro.
             ConfigureTextures(IsoSlashRoot, PixelsPerUnit, new Vector2(0.5f, 0.5f));
 
             // Una carpeta por golpe, ordenadas por nombre (1_..., 2_..., 3_..., 4_...)
@@ -750,6 +812,7 @@ namespace DarkFantasy.EditorTools
             Debug.Log($"[Caballero Maldito] Combo isométrico: {Mathf.Min(iso.combo.Length, folders.Length)} tajos cargados de {IsoSlashRoot}.");
         }
 
+        // Crea el muñeco: sprite, colisión en la base, vida y color del destello.
         /// <summary>Muñeco de entrenamiento de la plaza: sólido, ordenado por Y y con la barra de vida encima.</summary>
         static void CreateIsoDummy(Vector2 worldPos)
         {
@@ -775,6 +838,77 @@ namespace DarkFantasy.EditorTools
             td.flashColor = new Color(1f, 0.55f, 0.55f);
         }
 
+        // ------------------------------------------------------------------
+        // Botín isométrico: la espada púrpura tirada en la plaza, se recoge con E
+
+        const string PurpleSwordArtPath = "Assets/Game/Art/Armas/espada_purpura.png";
+        const string PurpleSwordDataPath = ItemDataRoot + "/EspadaPurpura.asset";
+        static readonly Vector2 IsoPurpleSwordPx = new Vector2(740, 500);
+
+        [MenuItem("Tools/Caballero Maldito/11. Añadir espada púrpura (botín isométrico)")]
+        // MENÚ 11 (isométrico): crea el objeto 'Espada púrpura' y lo deja en el suelo de la plaza, y guarda.
+        public static void AddIsoPurpleSwordMenu()
+        {
+            if (UnityEngine.Object.FindAnyObjectByType<DarkFantasy.IsoPlayerController>() == null)
+            {
+                EditorUtility.DisplayDialog("Caballero Maldito",
+                    "Abre la escena PlazaIsometrica (o ejecuta el paso 8) antes de añadir la espada.", "OK");
+                return;
+            }
+            var plaza = AssetDatabase.LoadAssetAtPath<Sprite>(IsoPlazaPath);
+            CreateIsoPurpleSword(new Vector2(IsoPurpleSwordPx.x, plaza.rect.height - IsoPurpleSwordPx.y) / PixelsPerUnit);
+            var scene = EditorSceneManager.GetActiveScene();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+        }
+
+        /// <summary>Espada púrpura en el suelo de la plaza: un Pickup que empieza ya apoyado y se ordena por Y.</summary>
+        static void CreateIsoPurpleSword(Vector2 worldPos)
+        {
+            DestroyIfExists("Botin_EspadaPurpura");
+            var item = GetOrCreatePurpleSwordData();
+            if (item == null) return;
+
+            var go = new GameObject("Botin_EspadaPurpura");
+            go.transform.position = worldPos;
+            var pickup = go.AddComponent<DarkFantasy.Pickup>();
+            pickup.item = item;
+            pickup.startOnGround = true;
+        }
+
+        // Crea (o actualiza) el objeto 'Espada púrpura' con su icono (pivote en la punta de abajo, que apoya en el suelo).
+        static DarkFantasy.ItemDefinition GetOrCreatePurpleSwordData()
+        {
+            if (AssetImporter.GetAtPath(PurpleSwordArtPath) == null)
+            {
+                Debug.LogWarning("[Caballero Maldito] No encuentro la espada en " + PurpleSwordArtPath);
+                return null;
+            }
+            ConfigureTexture(PurpleSwordArtPath, PixelsPerUnit, LowestOpaquePivot(PurpleSwordArtPath, new Vector2(0.5f, 0f)));
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PurpleSwordArtPath);
+
+            EnsureFolder(ItemDataRoot);
+            var def = AssetDatabase.LoadAssetAtPath<DarkFantasy.ItemDefinition>(PurpleSwordDataPath);
+            if (def == null)
+            {
+                def = ScriptableObject.CreateInstance<DarkFantasy.ItemDefinition>();
+                def.displayName = "Espada púrpura";
+                def.rarity = DarkFantasy.ItemRarity.Legendaria;
+                def.glowColor = new Color(0.75f, 0.35f, 1f, 1f);
+                def.description = "Hoja retorcida que late con una luz violeta (provisional).";
+                def.icon = sprite;
+                AssetDatabase.CreateAsset(def, PurpleSwordDataPath);
+            }
+            else
+            {
+                def.icon = sprite;
+                EditorUtility.SetDirty(def);
+            }
+            AssetDatabase.SaveAssets();
+            return def;
+        }
+
+        // Crea la cámara isométrica: sigue al caballero, se adelanta al caminar, no sale de la plaza y es pixel perfect.
         static void SetupIsoCamera(Transform target, Rect bounds)
         {
             var go = new GameObject("Main Camera") { tag = "MainCamera" };
@@ -809,6 +943,7 @@ namespace DarkFantasy.EditorTools
         /// </summary>
         static void SetGameViewFullHD()
         {
+            // Busca o crea la resolución 1920x1080 en la lista de la vista Game y la selecciona.
             const int W = 1920, H = 1080;
             const BindingFlags Any = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
             try
@@ -846,6 +981,7 @@ namespace DarkFantasy.EditorTools
                 if (select != null) select.Invoke(gameView, new object[] { index, null });
                 else gameViewType.GetProperty("selectedSizeIndex", Any).SetValue(gameView, index);
             }
+            // Si falla (cambia la API interna de Unity), solo avisa: hay que ponerla a mano.
             catch (Exception e)
             {
                 Debug.LogWarning("[Caballero Maldito] No pude poner la vista Game en 1920x1080; ponla a mano. " + e.Message);
@@ -855,6 +991,7 @@ namespace DarkFantasy.EditorTools
         /// <summary>Orden de dibujo por el eje Y: lo que está más abajo en pantalla se dibuja delante.</summary>
         static void ConfigureYSorting()
         {
+            // Ajuste general de Unity y, abajo, el del Renderer 2D de URP (que es el que manda).
             UnityEngine.Rendering.GraphicsSettings.transparencySortMode = TransparencySortMode.CustomAxis;
             UnityEngine.Rendering.GraphicsSettings.transparencySortAxis = Vector3.up;
 
@@ -881,17 +1018,20 @@ namespace DarkFantasy.EditorTools
         /// </summary>
         static Sprite CreateCutout(string fileName, Vector2[][] shapes, Vector2 foot)
         {
+            // Carga la imagen de la plaza y lee sus píxeles.
             var src = new Texture2D(2, 2);
             if (!src.LoadImage(File.ReadAllBytes(IsoPlazaPath))) return null;
             Color32[] srcPx = src.GetPixels32();
             int srcW = src.width, srcH = src.height;
             UnityEngine.Object.DestroyImmediate(src);
 
+            // Rectángulo que encierra la silueta.
             var all = shapes.SelectMany(s => s).ToArray();
             int minX = Mathf.Max(0, Mathf.FloorToInt(all.Min(p => p.x))), maxX = Mathf.Min(srcW, Mathf.CeilToInt(all.Max(p => p.x)));
             int minY = Mathf.Max(0, Mathf.FloorToInt(all.Min(p => p.y))), maxY = Mathf.Min(srcH, Mathf.CeilToInt(all.Max(p => p.y)));
             int w = maxX - minX, h = maxY - minY;
 
+            // Copia solo los píxeles que están dentro de la silueta; el resto queda transparente.
             var px = new Color32[w * h];
             for (int y = 0; y < h; y++)
             {
@@ -905,6 +1045,7 @@ namespace DarkFantasy.EditorTools
                 }
             }
 
+            // Guarda el recorte como PNG en la carpeta Recortes y lo importa con el pivote en su punto de apoyo.
             var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
             tex.SetPixels32(px);
             tex.Apply();
@@ -918,6 +1059,7 @@ namespace DarkFantasy.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
+        // true si el punto está dentro del polígono (método de cruces de rayo).
         static bool InsidePolygon(Vector2 p, Vector2[] poly)
         {
             bool inside = false;
@@ -930,6 +1072,7 @@ namespace DarkFantasy.EditorTools
             return inside;
         }
 
+        // Convierte una lista de números (x1,y1, x2,y2...) en puntos.
         static Vector2[] Px(params float[] xy)
         {
             var pts = new Vector2[xy.Length / 2];
@@ -963,6 +1106,7 @@ namespace DarkFantasy.EditorTools
             return polys.ToArray();
         }
 
+        // Crea (o actualiza) el archivo de datos de la Runa oscura con su imagen.
         static DarkFantasy.ItemDefinition GetOrCreateRuneData()
         {
             if (AssetImporter.GetAtPath(RuneArtPath) == null)
@@ -995,6 +1139,7 @@ namespace DarkFantasy.EditorTools
             return def;
         }
 
+        // Crea (o actualiza) el archivo de datos de la espada maldita con su imagen.
         static DarkFantasy.WeaponDefinition GetOrCreateSwordData()
         {
             if (AssetImporter.GetAtPath(WeaponArtPath) == null)
@@ -1025,6 +1170,7 @@ namespace DarkFantasy.EditorTools
             return def;
         }
 
+        // Borra un hijo por nombre, si existe.
         static void DestroyChild(Transform parent, string name)
         {
             var child = parent.Find(name);
@@ -1034,6 +1180,7 @@ namespace DarkFantasy.EditorTools
         // ------------------------------------------------------------------
         // Texturas y clips
 
+        // Configura como pixel art todas las imágenes de una carpeta (y sus subcarpetas).
         static void ConfigureTextures(string root, int ppu, Vector2 pivot)
         {
             foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { root }))
@@ -1057,6 +1204,7 @@ namespace DarkFantasy.EditorTools
             finally { UnityEngine.Object.DestroyImmediate(tex); }
         }
 
+        // Configura una imagen como sprite de pixel art: sin filtro, sin compresión, sin mipmaps y con el pivote dado.
         static void ConfigureTexture(string path, int ppu, Vector2 pivot)
         {
             var imp = AssetImporter.GetAtPath(path) as TextureImporter;
@@ -1080,6 +1228,7 @@ namespace DarkFantasy.EditorTools
             imp.SaveAndReimport();
         }
 
+        // Carga los cuadros de una carpeta del caballero lateral (todos o solo los indicados).
         static List<Sprite> LoadFrames(Source src)
         {
             string dir = ArtRoot + "/" + src.folder;
@@ -1102,6 +1251,7 @@ namespace DarkFantasy.EditorTools
             return sprites;
         }
 
+        // Crea o actualiza un archivo de animación (.anim) que cambia el sprite en cada cuadro.
         static AnimationClip SaveClip(ClipDef def, List<Sprite> sprites)
         {
             var clip = new AnimationClip { name = def.name, frameRate = def.fps };
@@ -1114,6 +1264,7 @@ namespace DarkFantasy.EditorTools
             keys[sprites.Count] = new ObjectReferenceKeyframe { time = sprites.Count / def.fps, value = sprites[sprites.Count - 1] };
             AnimationUtility.SetObjectReferenceCurve(clip, binding, keys);
 
+            // Si la animación se repite o no.
             var clipSettings = AnimationUtility.GetAnimationClipSettings(clip);
             clipSettings.loopTime = def.loop;
             AnimationUtility.SetAnimationClipSettings(clip, clipSettings);
@@ -1133,6 +1284,7 @@ namespace DarkFantasy.EditorTools
             return clip;
         }
 
+        // Crea o actualiza el Animator del caballero lateral con un estado por animación.
         static void BuildController(List<AnimationClip> clips)
         {
             var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
@@ -1155,6 +1307,7 @@ namespace DarkFantasy.EditorTools
             EditorUtility.SetDirty(controller);
         }
 
+        // Primera imagen de una animación (para mostrarla en el editor).
         static Sprite FirstSprite(AnimationClip clip)
         {
             foreach (var b in AnimationUtility.GetObjectReferenceCurveBindings(clip))
@@ -1168,6 +1321,7 @@ namespace DarkFantasy.EditorTools
         // ------------------------------------------------------------------
         // Escena
 
+        // Crea (si no existe) un cuadrado blanco de 4x4 para suelo y muñeco provisionales.
         static Sprite GetWhiteSprite()
         {
             EnsureFolder(PlaceholderRoot);
@@ -1187,6 +1341,7 @@ namespace DarkFantasy.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
+        // Cámara del prototipo lateral: ortográfica, sigue al jugador y es pixel perfect.
         static void SetupCamera(Transform target)
         {
             var cam = Camera.main;
@@ -1209,6 +1364,7 @@ namespace DarkFantasy.EditorTools
             AddPixelPerfect(cam);
         }
 
+        // Añade y configura la Pixel Perfect Camera de URP (32 px por unidad, resolución de referencia).
         static void AddPixelPerfect(Camera cam, int refWidth = 640, int refHeight = 360, bool upscaleRT = false)
         {
             // Pixel Perfect Camera de URP (si el paquete está disponible)
@@ -1231,6 +1387,7 @@ namespace DarkFantasy.EditorTools
             }
         }
 
+        // Añade una luz global 2D si no hay ninguna (sin luz, URP 2D se ve negro).
         static void EnsureGlobalLight()
         {
             var lightType = FindType("UnityEngine.Rendering.Universal.Light2D");
@@ -1247,12 +1404,14 @@ namespace DarkFantasy.EditorTools
         // ------------------------------------------------------------------
         // Utilidades
 
+        // Borra un objeto de la escena por nombre, si existe.
         static void DestroyIfExists(string name)
         {
             var go = GameObject.Find(name);
             if (go != null) UnityEngine.Object.DestroyImmediate(go);
         }
 
+        // Cambia un número de un componente por su nombre interno.
         static void SetInt(SerializedObject so, string prop, int value)
         {
             var p = so.FindProperty(prop);
@@ -1260,6 +1419,7 @@ namespace DarkFantasy.EditorTools
             p.intValue = value; // en enums asigna el valor numérico, no el índice
         }
 
+        // Busca un tipo por su nombre completo en todos los ensamblados (por si un paquete no está instalado).
         static Type FindType(string fullName)
         {
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
@@ -1270,6 +1430,7 @@ namespace DarkFantasy.EditorTools
             return null;
         }
 
+        // Crea una carpeta del proyecto (y las de encima) si no existe.
         static void EnsureFolder(string path)
         {
             if (AssetDatabase.IsValidFolder(path)) return;

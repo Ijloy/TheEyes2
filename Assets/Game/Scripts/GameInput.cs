@@ -1,4 +1,5 @@
 using UnityEngine;
+// Solo se usa la librería del Input System nuevo si el proyecto la tiene activada.
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -13,10 +14,12 @@ namespace DarkFantasy
     /// </summary>
     public static class GameInput
     {
+        // Eje horizontal: -1 = izquierda (A / flecha izq.), +1 = derecha (D / flecha der.), 0 = nada.
         public static float Horizontal
         {
             get
             {
+// Versión con el Input System nuevo.
 #if ENABLE_INPUT_SYSTEM
                 var k = Keyboard.current;
                 if (k == null) return 0f;
@@ -24,12 +27,14 @@ namespace DarkFantasy
                 if (k.aKey.isPressed || k.leftArrowKey.isPressed) h -= 1f;
                 if (k.dKey.isPressed || k.rightArrowKey.isPressed) h += 1f;
                 return h;
+// Versión con el Input Manager clásico.
 #else
                 return Input.GetAxisRaw("Horizontal");
 #endif
             }
         }
 
+        // Eje vertical: -1 = abajo (S / flecha abajo), +1 = arriba (W / flecha arriba).
         /// <summary>W/S o flechas arriba/abajo (para la vista isométrica).</summary>
         public static float Vertical
         {
@@ -48,6 +53,7 @@ namespace DarkFantasy
             }
         }
 
+        // Saltar: true solo en el frame en que se presiona Espacio, W o flecha arriba (prototipo lateral).
         public static bool JumpPressed
         {
             get
@@ -61,6 +67,7 @@ namespace DarkFantasy
             }
         }
 
+        // Atacar: true en el frame en que se presiona J.
         public static bool AttackPressed
         {
             get
@@ -74,6 +81,7 @@ namespace DarkFantasy
             }
         }
 
+        // Ataque cargado: true en el frame en que se presiona K.
         public static bool ChargedPressed
         {
             get
@@ -87,6 +95,7 @@ namespace DarkFantasy
             }
         }
 
+        // Interactuar / recoger: true en el frame en que se presiona E.
         public static bool InteractPressed
         {
             get
@@ -100,6 +109,7 @@ namespace DarkFantasy
             }
         }
 
+        // Prueba: H simula que el jugador recibe un golpe (para probar la pasiva).
         public static bool TestHitPressed
         {
             get

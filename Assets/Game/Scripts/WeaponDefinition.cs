@@ -10,6 +10,7 @@ namespace DarkFantasy
     [CreateAssetMenu(menuName = "Dark Fantasy/Arma", fileName = "NuevaArma")]
     public class WeaponDefinition : ScriptableObject
     {
+        // Nombre del arma.
         public string displayName = "Espada maldita";
 
         [Tooltip("Sprite del arma apuntando hacia ARRIBA, con el pivote en la empuñadura")]
@@ -28,6 +29,7 @@ namespace DarkFantasy
 
         [TextArea]
         [Tooltip("Pasiva del arma (pendiente de implementar)")]
+        // Texto de la pasiva del arma (todavía solo descriptivo).
         public string passiveDescription;
     }
 }
