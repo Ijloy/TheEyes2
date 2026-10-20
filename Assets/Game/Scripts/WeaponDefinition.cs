@@ -13,8 +13,11 @@ namespace DarkFantasy
         // Nombre del arma.
         public string displayName = "Espada maldita";
 
-        [Tooltip("Sprite del arma apuntando hacia ARRIBA, con el pivote en la empuñadura")]
+        [Tooltip("Sprite del arma con el pivote en la empuñadura (apuntando hacia ARRIBA, o corrige con spriteAngleOffset)")]
         public Sprite sprite;
+        [Tooltip("Cuántos grados está girado el dibujo respecto a 'hacia arriba' (antihorario positivo). " +
+                 "0 = hoja vertical; -45 = dibujada en diagonal con la punta arriba a la derecha")]
+        public float spriteAngleOffset = 0f;
 
         [Header("Combate")]
         [Tooltip("Multiplica el daño de todos los golpes")]

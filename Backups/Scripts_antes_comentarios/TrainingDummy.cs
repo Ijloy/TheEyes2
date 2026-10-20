@@ -10,7 +10,6 @@ namespace DarkFantasy
     [RequireComponent(typeof(SpriteRenderer))]
     public class TrainingDummy : MonoBehaviour, IDamageable
     {
-        // Vida máxima y segundos hasta que reaparece.
         public float maxHealth = 120f;
         public float respawnDelay = 3f;
         [Tooltip("Altura de la barra de vida sobre la posición del muñeco (unidades)")]
@@ -18,10 +17,8 @@ namespace DarkFantasy
         [Tooltip("Color del destello al recibir un golpe (blanco no se nota en sprites que ya son blancos de base)")]
         public Color flashColor = Color.white;
 
-        // Un número de daño flotante: texto, posición, tiempo vivo y si fue golpe fuerte.
         class Popup { public string text; public Vector3 pos; public float t; public bool heavy; }
 
-        // Estado interno: vida, sprite, color normal, tiempos de destello y temblor, posición base, números de daño, colisión y muerte.
         float health;
         SpriteRenderer sr;
         Color baseColor;
@@ -34,7 +31,6 @@ namespace DarkFantasy
         bool dead;
         float respawnTimer;
 
-        // Al empezar: guarda referencias, color y posición, y llena la vida.
         void Awake()
         {
             sr = GetComponent<SpriteRenderer>();
@@ -44,18 +40,14 @@ namespace DarkFantasy
             col = GetComponent<Collider2D>();
         }
 
-        // Recibe un golpe (cumple el contrato IDamageable).
         public void TakeDamage(float amount, Vector2 knockback, bool heavy)
         {
-            // Si está muerto ignora el golpe.
             if (dead) return;
             health -= amount;
 
-            // Destello corto; tiembla más y por más tiempo si el golpe es fuerte.
             flashTimer = 0.12f;
             shakeTimer = heavy ? 0.25f : 0.1f;
             shakeAmount = heavy ? 0.15f : 0.06f;
-            // Crea el número de daño encima del muñeco, un poco desplazado al azar.
             popups.Add(new Popup
             {
                 text = Mathf.RoundToInt(amount).ToString(),
@@ -63,11 +55,9 @@ namespace DarkFantasy
                 heavy = heavy
             });
 
-            // Sin vida: muere.
             if (health <= 0f) Die();
         }
 
-        // Muere: se oculta, desactiva su colisión, empieza la cuenta para reaparecer y suelta botín.
         void Die()
         {
             dead = true;
@@ -78,7 +68,6 @@ namespace DarkFantasy
             GetComponent<LootDropper>()?.Drop();
         }
 
-        // Reaparece con la vida llena y un destello.
         void Respawn()
         {
             dead = false;
@@ -88,7 +77,6 @@ namespace DarkFantasy
             flashTimer = 0.2f;
         }
 
-        // Cada frame: cuenta para reaparecer, destello, temblor y números de daño.
         void Update()
         {
             float dt = Time.deltaTime;
@@ -99,11 +87,9 @@ namespace DarkFantasy
                 if (respawnTimer <= 0f) Respawn();
             }
 
-            // Mientras dura el destello se pinta del color de destello.
             if (flashTimer > 0f) flashTimer -= dt;
             sr.color = flashTimer > 0f ? flashColor : baseColor;
 
-            // Temblor: se mueve un poco a los lados al azar; si no, vuelve a su sitio.
             if (shakeTimer > 0f)
             {
                 shakeTimer -= dt;
@@ -114,7 +100,6 @@ namespace DarkFantasy
                 transform.position = basePos;
             }
 
-            // Los números de daño suben y desaparecen a los 0.8 segundos.
             for (int i = popups.Count - 1; i >= 0; i--)
             {
                 popups[i].t += dt;
@@ -123,7 +108,6 @@ namespace DarkFantasy
             }
         }
 
-        // Dibuja la interfaz encima del muñeco.
         void OnGUI()
         {
             var cam = Camera.main;
@@ -136,10 +120,8 @@ namespace DarkFantasy
             DrawPopups(cam);
         }
 
-        // Barra de vida: fondo negro y relleno rojo según la vida que le queda.
         void DrawHealthBar(Camera cam)
         {
-            // Convierte la posición del mundo a posición en pantalla.
             Vector3 top = cam.WorldToScreenPoint(basePos + Vector3.up * uiHeight);
             float w = 80f;
             float x = top.x - w / 2f;
@@ -151,7 +133,6 @@ namespace DarkFantasy
             GUI.color = Color.white;
         }
 
-        // Dibuja cada número de daño (los fuertes más grandes y morados).
         void DrawPopups(Camera cam)
         {
             foreach (var p in popups)

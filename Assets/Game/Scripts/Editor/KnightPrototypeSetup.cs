@@ -13,7 +13,7 @@ namespace DarkFantasy.EditorTools
     /// <summary>
     /// Menú Tools > Caballero Maldito:
     ///  1. Crear animaciones: configura los PNG para pixel art y genera los clips + Animator Controller.
-    ///  2. Montar escena de prueba: suelo, caballero, muñeco, cámara pixel perfect.
+    ///  2. Montar escena de prueba: suelo, caballero, hechicero, cámara pixel perfect.
     ///
     /// Para reemplazar una animación provisional, pon una carpeta nueva en
     /// Assets/Game/Art/CaballeroMaldito con el nombre indicado (ej. "Attack_1") y vuelve a ejecutar el paso 1.
@@ -26,18 +26,46 @@ namespace DarkFantasy.EditorTools
         const string AnimRoot = "Assets/Game/Animations/CaballeroMaldito";
         const string ControllerPath = AnimRoot + "/CaballeroMaldito.controller";
         const string WeaponArtRoot = "Assets/Game/Art/Armas";
-        const string WeaponArtPath = WeaponArtRoot + "/espada_maldita.png";
+        // Espada equipada por el menú 3. La anterior (espada_maldita.png, EspadaMaldita.asset, 44 PPU,
+        // pivote (0.5, 10.5/66), vertical) se conserva por si se quiere volver a ella.
+        const string WeaponArtPath = WeaponArtRoot + "/espada_purpura.png";
         const string WeaponDataRoot = "Assets/Game/Data/Armas";
-        const string WeaponDataPath = WeaponDataRoot + "/EspadaMaldita.asset";
-        // La espada (29x66) se importa a 44 px por unidad para que mida ~1,5 unidades
-        const int WeaponPixelsPerUnit = 44;
-        static readonly Vector2 GripPivot = new Vector2(0.5f, 10.5f / 66f);
+        const string WeaponDataPath = WeaponDataRoot + "/EspadaPurpura.asset";
+        const string WeaponDisplayName = "Espada púrpura";
+        // Dibujada en diagonal (empuñadura abajo a la izquierda, punta arriba a la derecha)
+        const float WeaponSpriteAngleOffset = -45f;
+        // La espada (48x48, hoja de ~63 px en diagonal) se importa a 42 px por unidad para que mida ~1,5 unidades
+        const int WeaponPixelsPerUnit = 42;
+        static readonly Vector2 GripPivot = new Vector2(0.19f, 0.21f);
         const string SorcererArtRoot = "Assets/Game/Art/Enemigos/Hechicero";
         const string BackgroundRoot = "Assets/Game/Art/Fondos/CiudadGotica";
+        // Borde superior del suelo (el suelo se crea centrado en y = -4 con 6 de alto)
+        const float GroundTopY = -1f;
+        // Altura de la cámara sobre los pies del caballero: deja ~50 px de suelo a la vista y la base del fondo en el horizonte
+        static readonly Vector2 CameraOffset = new Vector2(0f, 4f);
         const string ItemArtRoot = "Assets/Game/Art/Objetos";
         const string RuneArtPath = ItemArtRoot + "/runa_oscura.png";
+        // Cuadros del cofre que aparece al morir un enemigo (18x18, frame_000..008)
+        const string ChestArtRoot = ItemArtRoot + "/Cofre";
         const string ItemDataRoot = "Assets/Game/Data/Objetos";
         const string RuneDataPath = ItemDataRoot + "/RunaOscuraComun.asset";
+        // Farol gótico (80x80): pivote en la base y luz en la vela
+        const string LanternArtPath = "Assets/Game/Art/Escenario/farol_gotico.png";
+        const string LanternPrefabRoot = "Assets/Game/Prefabs/Escenario";
+        const string LanternPrefabPath = LanternPrefabRoot + "/Farol.prefab";
+        static readonly Vector2 LanternPivot = new Vector2(0.48f, 0.025f);
+        static readonly Vector2 LanternCandleOffset = new Vector2(0.25f, 1.44f);
+        static readonly Color LanternLightColor = new Color(1f, 0.69f, 0.376f); // #FFB060
+        const int LanternCount = 4;
+        const float LanternStartX = 2f;
+        const float LanternSpacing = 8f;
+        // Faroles de primer plano: se dibujan por encima del caballero (10) y su arma (11) e intercalados con los de detrás
+        const string FrontLanternPrefabPath = LanternPrefabRoot + "/FarolDelante.prefab";
+        const int LanternSortingOrder = 5;
+        const int FrontLanternSortingOrder = 13;
+        const float FrontLanternStartX = 6f;
+        // Luz global más tenue para que destaquen los faroles
+        const float DimGlobalLightIntensity = 0.6f;
 
         // Píxeles por unidad de todo el arte (32 px = 1 unidad de Unity).
         const int PixelsPerUnit = 32;
@@ -147,7 +175,7 @@ namespace DarkFantasy.EditorTools
 
         // ------------------------------------------------------------------
         [MenuItem("Tools/Caballero Maldito/2. Montar escena de prueba")]
-        // MENÚ 2 (prototipo lateral): monta la escena de prueba con suelo, caballero, muñeco, hechicero, cámara y fondo.
+        // MENÚ 2 (prototipo lateral): monta la escena de prueba con suelo, caballero, hechicero, cámara y fondo.
         public static void BuildTestScene()
         {
             // Si todavía no existen las animaciones, las crea primero.
@@ -168,7 +196,7 @@ namespace DarkFantasy.EditorTools
             // Borra lo que hubiera de un montaje anterior.
             DestroyIfExists("Suelo");
             DestroyIfExists("CaballeroMaldito");
-            DestroyIfExists("Muneco");
+            DestroyIfExists("Muneco"); // de montajes antiguos
 
             // Suelo: la parte de arriba queda en y = -1
             var ground = new GameObject("Suelo");
@@ -199,30 +227,18 @@ namespace DarkFantasy.EditorTools
             player.AddComponent<DarkFantasy.PlayerInventory>();
             SetupWeapon(player);
 
-            // Muñeco de entrenamiento (trigger para poder atravesarlo)
-            var dummy = new GameObject("Muneco");
-            dummy.transform.position = new Vector3(3.5f, -0.1f, 0f);
-            dummy.transform.localScale = new Vector3(0.8f, 1.8f, 1f);
-            var dsr = dummy.AddComponent<SpriteRenderer>();
-            dsr.sprite = white;
-            dsr.color = new Color(0.55f, 0.38f, 0.22f);
-            dsr.sortingOrder = 5;
-            var dcol = dummy.AddComponent<BoxCollider2D>();
-            dcol.isTrigger = true;
-            dummy.AddComponent<DarkFantasy.TrainingDummy>();
-            SetupLoot(dummy);
-
             // Hechicero, cámara, luz y fondo.
             CreateSorcerer(new Vector3(9f, -0.95f, 0f));
 
             SetupCamera(player.transform);
             EnsureGlobalLight();
             CreateBackground();
+            CreateLanterns();
 
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             Selection.activeGameObject = player;
             EditorUtility.DisplayDialog("Caballero Maldito",
-                "Escena lista: caballero con espada, muñeco y hechicero enemigo. Pulsa Play.\n\nA/D mover · Espacio saltar · J combo · K cargado · H simular golpe.\n\n" +
+                "Escena lista: caballero con espada y hechicero enemigo. Pulsa Play.\n\nA/D mover · Espacio saltar · J combo · K cargado · H simular golpe.\n\n" +
                 "Guarda la escena con Ctrl+S.", "OK");
         }
 
@@ -283,35 +299,17 @@ namespace DarkFantasy.EditorTools
             return true;
         }
 
-        [MenuItem("Tools/Caballero Maldito/4. Añadir botín al muñeco")]
-        // MENÚ 4: añade al muñeco una tabla de botín (suelta una Runa oscura).
-        public static void AddLootMenu()
+        // Configura el LootDropper: al morir sale un cofre que suelta siempre 1 Runa oscura.
+        static bool SetupLoot(GameObject enemy)
         {
-            var dummy = GameObject.Find("Muneco");
-            if (dummy == null)
-            {
-                EditorUtility.DisplayDialog("Caballero Maldito", "No hay ningún Muneco en la escena. Ejecuta antes el paso 2.", "OK");
-                return;
-            }
-            if (SetupLoot(dummy))
-            {
-                var player = GameObject.Find("CaballeroMaldito");
-                if (player != null && player.GetComponent<DarkFantasy.PlayerInventory>() == null)
-                    player.AddComponent<DarkFantasy.PlayerInventory>();
-                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
-                EditorUtility.DisplayDialog("Caballero Maldito",
-                    "El muñeco ahora muere, suelta una Runa oscura y reaparece.\nAcércate a la runa y pulsa E para recogerla.\n\nGuarda la escena (Ctrl+S).", "OK");
-            }
-        }
-
-        // Configura el LootDropper: suelta siempre 1 Runa oscura.
-        static bool SetupLoot(GameObject dummy)
-        {
+            // También importa los cuadros del cofre (están en una subcarpeta de Objetos)
             var rune = GetOrCreateRuneData();
             if (rune == null) return false;
 
-            var dropper = dummy.GetComponent<DarkFantasy.LootDropper>();
-            if (dropper == null) dropper = dummy.AddComponent<DarkFantasy.LootDropper>();
+            var dropper = enemy.GetComponent<DarkFantasy.LootDropper>();
+            if (dropper == null) dropper = enemy.AddComponent<DarkFantasy.LootDropper>();
+            dropper.useChest = true;
+            dropper.chestFrames = LoadSpritesIn(ChestArtRoot);
             dropper.groundY = -1f;
             dropper.table = new[]
             {
@@ -423,12 +421,14 @@ namespace DarkFantasy.EditorTools
             DestroyIfExists("Fondo");
             var root = new GameObject("Fondo");
 
-            // (archivo, cuánto sigue a la cámara, orden de dibujo)
-            var layers = new (string file, float follow, int order)[]
+            // (archivo, cuánto sigue a la cámara, orden de dibujo, anclada al suelo)
+            // El cielo sigue a la cámara para llenar siempre la pantalla; las ciudades apoyan su base
+            // (última fila de la imagen) en el borde superior del suelo, y = -1.
+            var layers = new (string file, float follow, int order, bool anchor)[]
             {
-                ("fondo_1_cielo.png", 0.95f, -100),
-                ("fondo_2_ciudad_lejana.png", 0.8f, -90),
-                ("fondo_3_edificios.png", 0.6f, -80),
+                ("fondo_1_cielo.png", 0.95f, -100, false),
+                ("fondo_2_ciudad_lejana.png", 0.8f, -90, true),
+                ("fondo_3_edificios.png", 0.6f, -80, true),
             };
 
             foreach (var l in layers)
@@ -441,8 +441,92 @@ namespace DarkFantasy.EditorTools
                 layer.sprite = sprite;
                 layer.followFactor = l.follow;
                 layer.sortingOrder = l.order;
+                layer.anchorToGround = l.anchor;
+                layer.groundY = GroundTopY;
             }
             return root;
+        }
+
+        [MenuItem("Tools/Caballero Maldito/11. Añadir faroles")]
+        // MENÚ 11 (prototipo lateral): pone faroles con luz parpadeante a lo largo del suelo y atenúa la luz global.
+        public static void AddLanternsMenu()
+        {
+            if (CreateLanterns() != null)
+            {
+                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
+                EditorUtility.DisplayDialog("Caballero Maldito",
+                    $"{LanternCount * 2} faroles añadidos ({LanternCount} detrás y {LanternCount} delante del caballero) y luz global a {DimGlobalLightIntensity}.\n\nGuarda la escena (Ctrl+S).", "OK");
+            }
+        }
+
+        // Coloca los faroles (instancias del prefab) en el suelo, sin collider, y baja la luz global.
+        static GameObject CreateLanterns()
+        {
+            var back = GetOrCreateLanternPrefab(LanternPrefabPath, "Farol", LanternSortingOrder);
+            var front = GetOrCreateLanternPrefab(FrontLanternPrefabPath, "FarolDelante", FrontLanternSortingOrder);
+            if (back == null || front == null) return null;
+
+            DestroyIfExists("Faroles");
+            var root = new GameObject("Faroles");
+            PlaceLanterns(root.transform, back, "Farol ", LanternStartX);
+            PlaceLanterns(root.transform, front, "Farol delante ", FrontLanternStartX);
+
+            EnsureGlobalLight();
+            SetGlobalLightIntensity(DimGlobalLightIntensity);
+            return root;
+        }
+
+        // Pone una fila de faroles del prefab dado en el suelo, separados LanternSpacing.
+        static void PlaceLanterns(Transform root, GameObject prefab, string name, float startX)
+        {
+            for (int i = 0; i < LanternCount; i++)
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                go.name = name + (i + 1);
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(startX + i * LanternSpacing, GroundTopY, 0f);
+            }
+        }
+
+        // Crea (o rehace) un prefab de farol: sprite con el orden de dibujo dado y un hijo "Luz" con una Light2D puntual en la vela.
+        static GameObject GetOrCreateLanternPrefab(string path, string name, int sortingOrder)
+        {
+            if (!File.Exists(LanternArtPath))
+            {
+                EditorUtility.DisplayDialog("Caballero Maldito", "No encuentro " + LanternArtPath, "OK");
+                return null;
+            }
+            if (AssetImporter.GetAtPath(LanternArtPath) == null) AssetDatabase.ImportAsset(LanternArtPath);
+            ConfigureTexture(LanternArtPath, PixelsPerUnit, LanternPivot);
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(LanternArtPath);
+
+            var go = new GameObject(name);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.sortingOrder = sortingOrder;
+
+            var lightGo = new GameObject("Luz");
+            lightGo.transform.SetParent(go.transform, false);
+            lightGo.transform.localPosition = LanternCandleOffset;
+            var lightType = FindType("UnityEngine.Rendering.Universal.Light2D");
+            if (lightType != null)
+            {
+                var light = lightGo.AddComponent(lightType);
+                var so = new SerializedObject(light);
+                SetInt(so, "m_LightType", 3); // 3 = Point
+                var color = so.FindProperty("m_Color");
+                if (color != null) color.colorValue = LanternLightColor;
+                SetFloat(so, "m_Intensity", 1f);
+                SetFloat(so, "m_PointLightInnerRadius", 0.3f);
+                SetFloat(so, "m_PointLightOuterRadius", 3f);
+                so.ApplyModifiedPropertiesWithoutUndo();
+                lightGo.AddComponent<DarkFantasy.FlickerLight>();
+            }
+
+            EnsureFolder(LanternPrefabRoot);
+            var prefab = PrefabUtility.SaveAsPrefabAsset(go, path);
+            UnityEngine.Object.DestroyImmediate(go);
+            return prefab;
         }
 
         // Crea (o actualiza) el archivo de datos de la Runa oscura con su imagen.
@@ -478,7 +562,7 @@ namespace DarkFantasy.EditorTools
             return def;
         }
 
-        // Crea (o actualiza) el archivo de datos de la espada maldita con su imagen.
+        // Crea (o actualiza) el archivo de datos de la espada equipada con su imagen.
         static DarkFantasy.WeaponDefinition GetOrCreateSwordData()
         {
             if (AssetImporter.GetAtPath(WeaponArtPath) == null)
@@ -487,7 +571,8 @@ namespace DarkFantasy.EditorTools
                 return null;
             }
 
-            ConfigureTextures(WeaponArtRoot, WeaponPixelsPerUnit, GripPivot);
+            // Solo la espada equipada: el resto de Armas tiene su propio pivote y PPU
+            ConfigureTexture(WeaponArtPath, WeaponPixelsPerUnit, GripPivot);
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(WeaponArtPath);
 
             EnsureFolder(WeaponDataRoot);
@@ -495,14 +580,16 @@ namespace DarkFantasy.EditorTools
             if (def == null)
             {
                 def = ScriptableObject.CreateInstance<DarkFantasy.WeaponDefinition>();
-                def.displayName = "Espada maldita (provisional)";
+                def.displayName = WeaponDisplayName;
                 def.slashColor = new Color(0.78f, 0.35f, 1f, 0.9f);
                 def.sprite = sprite;
+                def.spriteAngleOffset = WeaponSpriteAngleOffset;
                 AssetDatabase.CreateAsset(def, WeaponDataPath);
             }
             else
             {
                 def.sprite = sprite;
+                def.spriteAngleOffset = WeaponSpriteAngleOffset;
                 EditorUtility.SetDirty(def);
             }
             AssetDatabase.SaveAssets();
@@ -643,7 +730,7 @@ namespace DarkFantasy.EditorTools
         // ------------------------------------------------------------------
         // Escena
 
-        // Crea (si no existe) un cuadrado blanco de 4x4 para suelo y muñeco provisionales.
+        // Crea (si no existe) un cuadrado blanco de 4x4 para el suelo provisional.
         static Sprite GetWhiteSprite()
         {
             EnsureFolder(PlaceholderRoot);
@@ -677,17 +764,18 @@ namespace DarkFantasy.EditorTools
             cam.orthographicSize = 360f / PixelsPerUnit / 2f;
             cam.backgroundColor = new Color(0.07f, 0.06f, 0.09f);
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.transform.position = new Vector3(target.position.x, target.position.y + 1.5f, -10f);
+            cam.transform.position = new Vector3(target.position.x + CameraOffset.x, target.position.y + CameraOffset.y, -10f);
 
             var follow = cam.GetComponent<DarkFantasy.CameraFollow>();
             if (follow == null) follow = cam.gameObject.AddComponent<DarkFantasy.CameraFollow>();
             follow.target = target;
+            follow.offset = CameraOffset;
 
             AddPixelPerfect(cam);
         }
 
         // Añade y configura la Pixel Perfect Camera de URP (32 px por unidad, resolución de referencia).
-        static void AddPixelPerfect(Camera cam, int refWidth = 640, int refHeight = 360, bool upscaleRT = false)
+        static void AddPixelPerfect(Camera cam, int refWidth = 640, int refHeight = 360, bool upscaleRT = true)
         {
             // Pixel Perfect Camera de URP (si el paquete está disponible)
             var ppcType = FindType("UnityEngine.Rendering.Universal.PixelPerfectCamera");
@@ -705,6 +793,8 @@ namespace DarkFantasy.EditorTools
                 if (up != null) up.boolValue = upscaleRT;
                 var snap = so.FindProperty("m_PixelSnapping");
                 if (snap != null) snap.boolValue = upscaleRT;
+                // Escalado sin suavizar (RetroAA difumina los bordes de los píxeles)
+                SetInt(so, "m_FilterMode", 1); // 0 = RetroAA, 1 = Point
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
         }
@@ -723,6 +813,21 @@ namespace DarkFantasy.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
+        // Cambia la intensidad de las luces 2D globales de la escena.
+        static void SetGlobalLightIntensity(float intensity)
+        {
+            var lightType = FindType("UnityEngine.Rendering.Universal.Light2D");
+            if (lightType == null) return;
+            foreach (var light in UnityEngine.Object.FindObjectsByType(lightType))
+            {
+                var so = new SerializedObject(light);
+                var type = so.FindProperty("m_LightType");
+                if (type == null || type.intValue != 4) continue; // 4 = Global
+                SetFloat(so, "m_Intensity", intensity);
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+        }
+
         // ------------------------------------------------------------------
         // Utilidades
 
@@ -739,6 +844,13 @@ namespace DarkFantasy.EditorTools
             var p = so.FindProperty(prop);
             if (p == null) return;
             p.intValue = value; // en enums asigna el valor numérico, no el índice
+        }
+
+        // Cambia un decimal de un componente por su nombre interno.
+        static void SetFloat(SerializedObject so, string prop, float value)
+        {
+            var p = so.FindProperty(prop);
+            if (p != null) p.floatValue = value;
         }
 
         // Busca un tipo por su nombre completo en todos los ensamblados (por si un paquete no está instalado).

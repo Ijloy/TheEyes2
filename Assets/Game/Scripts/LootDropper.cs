@@ -24,8 +24,27 @@ namespace DarkFantasy
         [Tooltip("Altura del suelo donde caen los objetos (y del mundo)")]
         public float groundY = -1f;
 
-        // Se llama cuando el enemigo muere: tira los objetos al suelo.
+        [Header("Cofre")]
+        [Tooltip("Al morir aparece un cofre en el suelo que se abre y suelta el botín. Desactivado: el botín sale directamente del enemigo")]
+        public bool useChest = true;
+        [Tooltip("Cuadros de la animación de abrir el cofre (sin cuadros se usa el comportamiento sin cofre)")]
+        public Sprite[] chestFrames = new Sprite[0];
+
+        // Se llama cuando el enemigo muere: aparece el cofre (que soltará el botín) o tira los objetos al suelo.
         public void Drop()
+        {
+            if (useChest && chestFrames != null && chestFrames.Length > 0)
+            {
+                // El cofre apoya su base en el suelo, debajo de donde murió el enemigo
+                LootChest.Spawn(this, chestFrames, new Vector3(transform.position.x, groundY, 0f));
+                return;
+            }
+            // Crea los objetos un poco por encima del enemigo para que salten y caigan.
+            SpawnLoot(transform.position + Vector3.up * 0.5f);
+        }
+
+        /// <summary>Tira al suelo los objetos de la tabla desde 'origin' (saltan y caen hasta groundY).</summary>
+        public void SpawnLoot(Vector3 origin)
         {
             foreach (var e in table)
             {
@@ -34,8 +53,7 @@ namespace DarkFantasy
                 // Cuántas unidades caen (entre min y max, ambos incluidos).
                 int n = Random.Range(e.min, e.max + 1);
                 for (int i = 0; i < n; i++)
-                    // Crea cada objeto un poco por encima del enemigo para que salte y caiga.
-                    Pickup.Spawn(e.item, transform.position + Vector3.up * 0.5f, groundY);
+                    Pickup.Spawn(e.item, origin, groundY);
             }
         }
     }

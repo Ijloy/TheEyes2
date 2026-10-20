@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8484b34d0e7a424eb2a828fe8b1e6ca, type: 3}
+  m_Name: EspadaPurpura
+  m_EditorClassIdentifier: Assembly-CSharp::DarkFantasy.WeaponDefinition
+  displayName: "Espada p\xFArpura"
+  sprite: {fileID: 21300000, guid: c60cc6c67c0f9bd409925ff53a1ea62b, type: 3}
+  spriteAngleOffset: -45
+  damageMultiplier: 1
+  slashColor: {r: 0.78, g: 0.35, b: 1, a: 0.9}
+  visibleWhenIdle: 0
+  passiveDescription: 

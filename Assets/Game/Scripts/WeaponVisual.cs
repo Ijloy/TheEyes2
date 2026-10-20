@@ -188,8 +188,10 @@ namespace DarkFantasy
             float dir = right ? 1f : -1f;
             Transform w = weaponRenderer.transform;
             w.localPosition = new Vector3(offset.x * dir, offset.y, 0f);
-            // El sprite apunta hacia arriba (90°): se resta para que 0° sea "hacia delante"
-            float z = right ? angle - 90f : 90f - angle;
+            // El sprite apunta hacia arriba (90°): se resta para que 0° sea "hacia delante".
+            // Si el dibujo no es vertical (spriteAngleOffset), se descuenta su giro; volteado, el giro va al revés.
+            float drawn = weapon != null ? weapon.spriteAngleOffset : 0f;
+            float z = right ? angle - 90f - drawn : 90f - angle + drawn;
             w.localRotation = Quaternion.Euler(0f, 0f, z);
             weaponRenderer.flipX = !right;
         }

@@ -16,8 +16,12 @@ namespace DarkFantasy
         [Range(0f, 1f)] public float followFactor = 0.8f;
         // Orden de dibujo: números más bajos se dibujan más atrás.
         public int sortingOrder = -100;
-        [Tooltip("Desplazamiento vertical respecto al centro de la cámara")]
+        [Tooltip("Desplazamiento vertical respecto al centro de la cámara (solo si no está anclada al suelo)")]
         public float verticalOffset = 0f;
+        [Tooltip("Fija la capa en vertical con el borde inferior de la imagen en groundY, para que los edificios apoyen en el suelo y no suban con la cámara al saltar")]
+        public bool anchorToGround;
+        [Tooltip("Altura del mundo donde apoya el borde inferior de la imagen (borde superior del suelo)")]
+        public float groundY = -1f;
 
         // Referencias internas: cámara, las 3 copias, ancho de la imagen y posiciones iniciales.
         Transform cam;
@@ -65,8 +69,8 @@ namespace DarkFantasy
             float offset = Mathf.Repeat(cam.position.x - baseX, width);
             float centerX = cam.position.x - offset;
 
-            // La capa sigue a la cámara en vertical (con su desplazamiento propio).
-            float y = cam.position.y + verticalOffset;
+            // Anclada: el borde inferior de la imagen queda en groundY. Si no, sigue a la cámara en vertical.
+            float y = anchorToGround ? groundY - sprite.bounds.min.y : cam.position.y + verticalOffset;
             // Pone las 3 copias juntas: izquierda, centro y derecha (z = 10, detrás de todo).
             for (int i = 0; i < tiles.Length; i++)
                 tiles[i].position = new Vector3(centerX + (i - 1) * width + width * 0.5f, y, 10f);
